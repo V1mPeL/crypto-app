@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HTMLReactParser from "html-react-parser";
 import { useParams } from "react-router-dom";
 import millify from "millify";
@@ -17,21 +17,17 @@ import {
 import { LiaHashtagSolid } from "react-icons/lia";
 import { GoStop } from "react-icons/go";
 import { CiCircleAlert } from "react-icons/ci";
-import Select from "react-select";
 
-import LineChart from './LineChart';
+import LineChart from "./LineChart";
 
 const CryptoDetails = () => {
   const { coinId } = useParams();
-  const [timeperiod, setTimeperiod] = useState("7d");
   const { data, isFetching } = useGetCryptoDetailsQuery(coinId);
   const { data: coinHistory } = useGetCryptoHistoryQuery({
     coinId,
-    timeperiod,
   });
   const cryptoDetails = data?.data?.coin;
-
-  const time = ["3h", "24h", "7d", "30d", "1y", "3m", "3y", "5y"];
+  console.log(cryptoDetails);
 
   const stats = [
     {
@@ -41,8 +37,8 @@ const CryptoDetails = () => {
     },
     { title: "Rank", value: cryptoDetails?.rank, icon: <LiaHashtagSolid /> },
     {
-      title: "24h Volume",
-      value: `$ ${cryptoDetails?.volume && millify(cryptoDetails?.volume)}`,
+      title: "24h Change",
+      value: `${cryptoDetails?.change}%`,
       icon: <AiOutlineThunderbolt />,
     },
     {
@@ -95,7 +91,8 @@ const CryptoDetails = () => {
     },
   ];
 
-  const selectOptions = time.map((date) => ({ value: date, label: date }));
+  console.log("coinHistory");
+  console.log(coinHistory);
 
   if (isFetching) return <div className="spinner"></div>;
 
@@ -110,13 +107,11 @@ const CryptoDetails = () => {
           statistics, market cap and supply.
         </p>
       </div>
-      <Select
-        className="px-4 py-2 rounded-md focus:outline-none focus:ring focus:border-blue-300 w-[200px]"
-        defaultValue={selectOptions[2]} // Default to "7d"
-        options={selectOptions}
-        onChange={(selectedOption) => setTimeperiod(selectedOption.value)}
+      <LineChart
+        coinHistory={coinHistory}
+        currentPrice={millify(cryptoDetails?.price)}
+        coinName={cryptoDetails?.name}
       />
-      <LineChart coinHistory={coinHistory} currentPrice={millify(cryptoDetails?.price)} coinName={cryptoDetails?.name} />
       <div className="mt-8 flex flex-col items-center md:flex-row md:justify-around">
         <div className="mb-8">
           <h3 className="text-xl font-semibold mb-2 text-center ">
@@ -124,14 +119,26 @@ const CryptoDetails = () => {
           </h3>
           {stats.map(({ icon, title, value }) => (
             <div
-              className="hover:bg-white transition duration-300 rounded-md shadow-md px-4 flex items-center justify-between py-2 mb-1 w-[300px]"
+              className={`hover:bg-white transition duration-300 rounded-md shadow-md px-4 flex items-center justify-between py-2 mb-1 w-[300px]`}
               key={title}
             >
               <div className="flex items-center">
                 {icon}
                 <span className="ml-2">{title}</span>
               </div>
-              <p className="ml-4">{value}</p>
+              {title === "24h Change" ? (
+                <p
+                  className={`ml-4 ${
+                    parseFloat(cryptoDetails?.change) >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {value}
+                </p>
+              ) : (
+                <p className="ml-4">{value}</p>
+              )}
             </div>
           ))}
         </div>
